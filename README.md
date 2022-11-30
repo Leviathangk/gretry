@@ -52,7 +52,7 @@ def success(result):
     print('success', result)
 
 
-@Retry(max_retry=3, delay=1, callback=success, error_callback=failed)
+@retry(max_retry=3, delay=1, callback=success, error_callback=failed)
 def run(name):
     raise FileExistsError('文件不存在！')
 
