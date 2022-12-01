@@ -56,7 +56,6 @@ on_exceptions 和 ignore_exceptions 只有一个能被设置
 ## 当有 error_callback 参数时
 
 - 当执行失败时，会在抛出前，将函数的执行参数，作为参数放入 error_callback 并执行
-- 当执行正确时，会将正确的结果返回
 
 ## 错误的继承类的问题
 
