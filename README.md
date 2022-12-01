@@ -50,6 +50,7 @@ on_exceptions 和 ignore_exceptions 只有一个能被设置
 ## 当有 callback 参数时
 
 - 当有正确的结果时，会将结果作为参数放入 callback 并执行
+- 有 callback 则不会返回结果
 - 无正确结果则直接抛出
 
 ## 当有 error_callback 参数时
