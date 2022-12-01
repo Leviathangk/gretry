@@ -41,7 +41,7 @@ class Retry:
         :param on_exceptions: 哪些报错才重试，默认都重试
         :param ignore_exceptions: 哪些报错不重试，直接抛出
         :param callback: 成功回调函数
-        :param error_callback: 错误回调函数
+        :param error_callback: 错误回调函数（最后一次）
         :param raise_exception: 一直失败，最后是否需要抛出错误
         """
         self.max_retry = max_retry

@@ -1,6 +1,9 @@
 # gretry
 
-一个错误重试装饰器
+包含以下两个模块
+
+- 错误重试装饰器 retry
+- 错误跳转装饰器 error_jump
 
 # 安装
 
@@ -8,7 +11,12 @@
 pip install gretry
 ```
 
-# 参数介绍
+# 模块介绍
+
+## retry 模块
+
+用来进行错误重试  
+参数如下：
 
 - retry: 失败重试次数（默认 3 次）
 - delay: 错误重试间隔（默认 0s）
@@ -18,7 +26,26 @@ pip install gretry
 - error_callback: 执行失败回调结果函数
 - raise_exception: 一直失败，最后是否需要抛出错误（默认 True）
 
+注意：多个 @retry 装饰器套着用是不可取的，因为一个装饰器重新执行程序，那么其他装饰器也会再次执行
+
+## error_jump 模块
+
+用于执行错误时跳转，当然，正确也可以跳转  
+参数如下：
+
+- on_exceptions: 哪些报错才跳转（默认 都跳转）
+- ignore_exceptions: 哪些报错不执行跳转（默认 无）
+- callback: 执行成功回调结果函数
+- error_callback: 执行失败回调结果函数
+- raise_exception: 是否需要抛出错误（默认 True）
+
+注意：有多个 @error_jump 装饰器时，不要使用 raise_exception = False 不然其余装饰器无法捕获错误
+
 # 注意点
+
+# exception
+
+on_exceptions 和 ignore_exceptions 只有一个能被设置
 
 ## 当有 callback 参数时
 
@@ -34,7 +61,7 @@ pip install gretry
 
 比如 FileExistsError 类型是 OSError 的子类，这里判断的时候是 FileExistsError 就是 FileExistsError，不会向上识别
 
-# 示例
+# 示例-retry
 
 ## 示例 1
 
@@ -88,4 +115,33 @@ on_exceptions、ignore_exceptions 参数可以是错误的类型或者是列表
 @retry(max_retry=3, on_exceptions=FileExistsError, ignore_exceptions=[OSError])
 def run(name):
     raise FileExistsError('文件不存在！')
+```
+
+# 示例-error_jump
+
+```
+from gretry import retry, error_jump
+
+
+def error(s):
+    print('error1')
+
+
+def error2(s):
+    print('error2')
+
+
+def success(res):
+    print('success', res)
+
+
+@error_jump(on_exceptions=FileExistsError, error_callback=error)
+@error_jump(on_exceptions=FileNotFoundError, error_callback=error2)
+@error_jump(callback=success)
+def run(s):
+    raise FileExistsError('1')
+
+
+if __name__ == '__main__':
+    run(2)
 ```
