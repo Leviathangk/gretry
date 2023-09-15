@@ -7,6 +7,7 @@
         def run(s):
             return s * 2
 """
+import traceback
 from typing import Callable, Union, List, Type
 
 
@@ -17,7 +18,8 @@ class ErrorJump:
             ignore_exceptions: Union[Type[Exception], List[Type[Exception]]] = None,
             callback: Callable = None,
             error_callback: Callable = None,
-            raise_exception: bool = True
+            raise_exception: bool = True,
+            print_exception: bool = True,
     ):
         """
         注意：有回调函数优先回调函数，走回调函数不会有返回
@@ -27,10 +29,12 @@ class ErrorJump:
         :param callback: 成功回调函数
         :param error_callback: 错误回调函数
         :param raise_exception: 是否需要抛出错误
+        :param print_exception: 不抛出错误的时候，是否需要打印错误
         """
         self.callback = callback
         self.error_callback = error_callback
         self.raise_exception = raise_exception
+        self.print_exception = print_exception
 
         if on_exceptions and not isinstance(on_exceptions, list) and issubclass(on_exceptions, Exception):
             on_exceptions = [on_exceptions]
@@ -60,15 +64,23 @@ class ErrorJump:
 
             # 判断是否在忽略列表，不在执行回调
             if self.ignore_exceptions and not self.is_ignore_exception(e) and self.error_callback:
-                self.error_callback(*args, **kwargs)
+                return self.error_callback(*args, **kwargs)
 
             # 判断是否执行回调
             elif self.is_on_exception(e) and self.error_callback:
-                self.error_callback(*args, **kwargs)
+                return self.error_callback(*args, **kwargs)
 
             # 是否抛出错误
             if self.raise_exception:
-                raise e
+                if self.ignore_exceptions and e not in self.ignore_exceptions:
+                    raise e
+                elif self.on_exceptions and e in self.on_exceptions:
+                    raise e
+                elif not self.ignore_exceptions and not self.on_exceptions:
+                    raise e
+
+            if self.print_exception:
+                traceback.print_exception(type(e), e, e.__traceback__)
 
     def is_on_exception(self, e: Exception) -> bool:
         """
@@ -111,7 +123,8 @@ def error_jump(
         ignore_exceptions: Union[Type[Exception], List[Type[Exception]]] = None,
         callback: Callable = None,
         error_callback: Callable = None,
-        raise_exception: bool = True
+        raise_exception: bool = True,
+        print_exception: bool = True,
 ):
     """
 
@@ -120,6 +133,7 @@ def error_jump(
     :param callback: 成功回调函数
     :param error_callback: 错误回调函数
     :param raise_exception: 是否需要抛出错误
+    :param print_exception: 不抛出错误的时候，是否需要打印错误
     :return:
     """
     return ErrorJump(
@@ -127,5 +141,6 @@ def error_jump(
         ignore_exceptions=ignore_exceptions,
         callback=callback,
         error_callback=error_callback,
-        raise_exception=raise_exception
+        raise_exception=raise_exception,
+        print_exception=print_exception
     )

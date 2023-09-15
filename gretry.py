@@ -19,6 +19,7 @@
             raise FileExistsError('文件不存在！')
 """
 import time
+import traceback
 from typing import Callable, Union, List, Type
 
 
@@ -31,7 +32,8 @@ class Retry:
             ignore_exceptions: Union[Type[Exception], List[Type[Exception]]] = None,
             callback: Callable = None,
             error_callback: Callable = None,
-            raise_exception: bool = True
+            raise_exception: bool = True,
+            print_exception: bool = True,
     ):
         """
         注意：有回调函数优先回调函数，走回调函数不会有返回
@@ -43,12 +45,14 @@ class Retry:
         :param callback: 成功回调函数
         :param error_callback: 错误回调函数（最后一次）
         :param raise_exception: 一直失败，最后是否需要抛出错误
+        :param print_exception: 不抛出错误的时候，是否需要打印错误
         """
         self.max_retry = max_retry
         self.delay = delay
         self.callback = callback
         self.error_callback = error_callback
         self.raise_exception = raise_exception
+        self.print_exception = print_exception
 
         if on_exceptions and not isinstance(on_exceptions, list) and issubclass(on_exceptions, Exception):
             on_exceptions = [on_exceptions]
@@ -69,38 +73,44 @@ class Retry:
         """
         failed = 0
 
-        while True:
+        while failed < self.max_retry:
             try:
                 result = func(*args, **kwargs)
                 if self.callback:
-                    self.callback(result)
+                    return self.callback(result)
                 else:
                     return result
 
             except Exception as e:
                 exception = e
 
-                if failed < self.max_retry:
-                    failed += 1
+                failed += 1
 
-                    # 判断是否要重试
-                    if not self.is_on_exception(e):
-                        break
-
-                    # 判断是否要忽略，直接抛出
-                    if self.is_ignore_exception(e):
-                        break
-
-                    time.sleep(self.delay)
-                else:
+                # 判断是否要重试
+                if not self.is_on_exception(e):
                     break
 
+                # 判断是否要忽略，直接抛出
+                if self.is_ignore_exception(e):
+                    break
+
+                time.sleep(self.delay)
+
         # 判断是否执行回调
-        self.error_callback and self.error_callback(*args, **kwargs)
+        if self.error_callback:
+            return self.error_callback(*args, **kwargs)
 
         # 是否抛出错误
         if self.raise_exception:
-            raise exception
+            if self.ignore_exceptions and exception not in self.ignore_exceptions:
+                raise exception
+            elif self.on_exceptions and exception in self.on_exceptions:
+                raise exception
+            elif not self.ignore_exceptions and not self.on_exceptions:
+                raise exception
+
+        if self.print_exception:
+            traceback.print_exception(type(exception), exception, exception.__traceback__)
 
     def is_on_exception(self, e: Exception) -> bool:
         """
@@ -145,7 +155,8 @@ def retry(
         ignore_exceptions: Union[Type[Exception], List[Type[Exception]]] = None,
         callback: Callable = None,
         error_callback: Callable = None,
-        raise_exception: bool = True
+        raise_exception: bool = True,
+        print_exception: bool = True,
 ):
     """
 
@@ -156,6 +167,7 @@ def retry(
     :param callback: 成功回调函数
     :param error_callback: 错误回调函数
     :param raise_exception: 一直失败，最后是否需要抛出错误
+    :param print_exception: 不抛出错误的时候，是否需要打印错误
     :return:
     """
     return Retry(
@@ -165,5 +177,6 @@ def retry(
         ignore_exceptions=ignore_exceptions,
         callback=callback,
         error_callback=error_callback,
-        raise_exception=raise_exception
+        raise_exception=raise_exception,
+        print_exception=print_exception
     )
